@@ -22,6 +22,7 @@ import chardet
 
 from ..core.config import settings
 from ..schemas.crawler import PageContent, ImageData, CrawlResponse
+from .vector_db_service import vector_db_service
 
 logger = logging.getLogger(__name__)
 
@@ -571,17 +572,30 @@ class CrawlerService:
         duration = (end_time - start_time).total_seconds()
 
         logger.info(f"Crawl completed: {len(self.pages_data)} pages in {duration:.2f}s")
+        
+        # Store in vector database if enabled
+        vector_stats = None
+        if vector_db_service.enabled and self.pages_data:
+            logger.info("Storing crawled content in vector database...")
+            vector_stats = await vector_db_service.store_pages_batch(self.pages_data, seed_url)
+            logger.info(f"Vector storage: {vector_stats}")
 
         # Return response
-        return CrawlResponse(
-            success=True,
-            base_url=seed_url,
-            total_pages_crawled=len(self.pages_data),
-            total_pages_requested=len(self.visited_urls),
-            pages=self.pages_data,
-            errors=self.errors,
-            crawl_duration_seconds=duration,
-        )
+        response_data = {
+            "success": True,
+            "base_url": seed_url,
+            "total_pages_crawled": len(self.pages_data),
+            "total_pages_requested": len(self.visited_urls),
+            "pages": self.pages_data,
+            "errors": self.errors,
+            "crawl_duration_seconds": duration,
+        }
+        
+        # Add vector stats if available
+        if vector_stats:
+            response_data["vector_storage"] = vector_stats
+        
+        return CrawlResponse(**response_data)
 
 
 # Singleton instance

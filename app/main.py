@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
 from .api.v1 import api_router
+from .services.vector_db_service import vector_db_service
 
 # Configure logging
 logging.basicConfig(
@@ -86,12 +87,28 @@ async def startup_event():
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f"Max concurrent requests: {settings.MAX_CONCURRENT_REQUESTS}")
     logger.info(f"Request timeout: {settings.REQUEST_TIMEOUT}s")
+    
+    # Initialize vector database if enabled
+    if vector_db_service.enabled:
+        logger.info("Initializing vector database with pgvector...")
+        success = await vector_db_service.initialize_database()
+        if success:
+            logger.info("Vector database initialized successfully")
+        else:
+            logger.warning("Vector database initialization failed")
+    else:
+        logger.info("Vector storage is disabled")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Shutdown event - cleanup resources"""
     logger.info(f"Shutting down {settings.APP_NAME}")
+    
+    # Close database connections
+    if vector_db_service.enabled:
+        await vector_db_service.close()
+        logger.info("Vector database connections closed")
 
 
 @app.get("/", tags=["root"])

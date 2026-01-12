@@ -34,6 +34,14 @@ class Settings(BaseSettings):
     # Content extraction settings
     CONTENT_SNIPPET_LENGTH: int = 200  # characters
     MAX_CONTENT_LENGTH: int = 10000  # characters per page
+    
+    # Database settings
+    DATABASE_URL: str = ""
+    VECTOR_STORAGE_ENABLED: bool = False
+    
+    # Embedding settings
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    EMBEDDING_DIMENSION: int = 384
 
     # Logging settings
     LOG_LEVEL: str = "INFO"

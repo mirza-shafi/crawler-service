@@ -105,6 +105,7 @@ class CrawlResponse(BaseModel):
     pages: List[PageContent] = Field(default=[], description="List of crawled pages")
     errors: List[str] = Field(default=[], description="List of errors encountered")
     crawl_duration_seconds: float = Field(..., description="Total crawl time in seconds")
+    vector_storage: Optional[dict] = Field(None, description="Vector storage statistics if enabled")
 
     model_config = {
         "json_schema_extra": {
@@ -116,7 +117,13 @@ class CrawlResponse(BaseModel):
                     "total_pages_requested": 10,
                     "pages": [],
                     "errors": [],
-                    "crawl_duration_seconds": 12.5
+                    "crawl_duration_seconds": 12.5,
+                    "vector_storage": {
+                        "stored": 5,
+                        "failed": 0,
+                        "total": 5,
+                        "enabled": True
+                    }
                 }
             ]
         }
@@ -137,6 +144,37 @@ class CrawlErrorResponse(BaseModel):
                     "success": False,
                     "error": "Invalid URL provided",
                     "error_code": "INVALID_URL"
+                }
+            ]
+        }
+    }
+
+
+class SearchResponse(BaseModel):
+    """Schema for semantic search response"""
+    
+    success: bool = Field(default=True, description="Whether search was successful")
+    query: str = Field(..., description="Search query")
+    results_count: int = Field(..., description="Number of results returned")
+    results: List[dict] = Field(default=[], description="Search results")
+    vector_enabled: bool = Field(..., description="Whether vector storage is enabled")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "success": True,
+                    "query": "product information",
+                    "results_count": 3,
+                    "vector_enabled": True,
+                    "results": [
+                        {
+                            "url": "https://example.com/products",
+                            "title": "Our Products",
+                            "score": 0.85,
+                            "content_snippet": "We offer..."
+                        }
+                    ]
                 }
             ]
         }

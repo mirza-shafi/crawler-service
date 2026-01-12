@@ -3,7 +3,7 @@ Crawler Endpoints - FastAPI routes for crawling operations
 """
 
 import logging
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, HTTPException, status, Form
 
 from ....schemas.crawler import CrawlRequest, CrawlResponse, CrawlErrorResponse

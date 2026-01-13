@@ -31,7 +31,7 @@ docker restart postgres_instance
 sleep 5
 
 echo "Step 6: Create extension..."
-docker exec postgres_instance psql -U myuser -d content_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
+docker exec postgres_instance psql -U myuser -d crawler_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
 
 echo ""
 echo "✓ pgvector setup complete!"

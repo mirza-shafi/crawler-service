@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = ""
     VECTOR_STORAGE_ENABLED: bool = False
     
+    # Redis settings
+    REDIS_URL: str = "redis://redis:6379"
+    
     # Embedding settings
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     EMBEDDING_DIMENSION: int = 384

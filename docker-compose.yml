@@ -17,11 +17,19 @@ services:
       - USER_AGENT=CrawlerBot/1.0
       - MAX_RETRIES=3
       - RETRY_DELAY=2
+      - DATABASE_URL=${DATABASE_URL}
+      - VECTOR_STORAGE_ENABLED=${VECTOR_STORAGE_ENABLED}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION}
+    depends_on:
+      - postgres
+      - redis
     volumes:
       - ./app:/app/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
     networks:
       - app-network
+      - postgres-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
@@ -30,6 +38,44 @@ services:
       retries: 3
       start_period: 40s
 
+  postgres:
+    image: postgres:15
+    container_name: crawler-postgres
+    environment:
+      POSTGRES_USER: crawler_user
+      POSTGRES_PASSWORD: crawler_password
+      POSTGRES_DB: crawler_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./setup_pgvector.sh:/docker-entrypoint-initdb.d/setup_pgvector.sh
+    networks:
+      - postgres-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crawler_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2.4-alpine
+    container_name: crawler-redis
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
 networks:
   app-network:
+    driver: bridge
+  postgres-network:
     driver: bridge

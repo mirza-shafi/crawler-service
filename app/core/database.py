@@ -36,5 +36,6 @@ def get_db():
 
 def init_db():
     """Initialize database - create tables"""
-    from ..models.crawled_content import Base as ModelBase
+    from ..models.content_manager import Base as ModelBase
     ModelBase.metadata.create_all(bind=engine)
+

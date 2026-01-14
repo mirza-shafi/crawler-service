@@ -12,7 +12,7 @@ from sqlalchemy.future import select
 from sentence_transformers import SentenceTransformer
 
 from ..core.config import settings
-from ..models.crawled_content import Base, CrawledContent
+from ..models.content_manager import Base, ContentManager
 from ..schemas.crawler import PageContent
 
 logger = logging.getLogger(__name__)
@@ -125,7 +125,7 @@ class VectorDatabaseService:
             async with self.async_session_maker() as session:
                 # Check if URL already exists
                 result = await session.execute(
-                    select(CrawledContent).where(CrawledContent.url == page.url)
+                    select(ContentManager).where(ContentManager.url == page.url)
                 )
                 existing = result.scalar_one_or_none()
                 
@@ -141,7 +141,7 @@ class VectorDatabaseService:
                     logger.info(f"Updated existing page: {page.url}")
                 else:
                     # Create new record
-                    content = CrawledContent(
+                    content = ContentManager(
                         url=page.url,
                         title=page.title,
                         text_content=page.text_content,
@@ -227,13 +227,16 @@ class VectorDatabaseService:
             async with self.async_session_maker() as session:
                 # Build query with vector similarity
                 query_stmt = select(
-                    CrawledContent,
-                    CrawledContent.embedding.cosine_distance(query_embedding).label('distance')
+                    ContentManager,
+                    ContentManager.embedding.cosine_distance(query_embedding).label('distance')
                 )
+                
+                # Only search records that have embeddings
+                query_stmt = query_stmt.where(ContentManager.embedding.isnot(None))
                 
                 # Add base_url filter if provided
                 if base_url_filter:
-                    query_stmt = query_stmt.where(CrawledContent.base_url == base_url_filter)
+                    query_stmt = query_stmt.where(ContentManager.base_url == base_url_filter)
                 
                 # Order by similarity and limit
                 query_stmt = query_stmt.order_by('distance').limit(top_k)
@@ -244,11 +247,16 @@ class VectorDatabaseService:
                 # Format results
                 results = []
                 for content, distance in rows:
+                    # Skip if no embedding (distance is None)
+                    if distance is None:
+                        logger.warning(f"Skipping result for {content.url} - no embedding found")
+                        continue
+                    
                     # Convert distance to similarity score (1 - distance for cosine)
                     similarity_score = 1 - distance
                     
                     results.append({
-                        "id": content.id,
+                        "id": str(content.id),
                         "score": float(similarity_score),
                         "url": content.url,
                         "title": content.title,
@@ -271,7 +279,7 @@ class VectorDatabaseService:
         try:
             async with self.async_session_maker() as session:
                 result = await session.execute(
-                    select(CrawledContent).where(CrawledContent.url == url)
+                    select(ContentManager).where(ContentManager.url == url)
                 )
                 content = result.scalar_one_or_none()
                 
@@ -300,7 +308,7 @@ class VectorDatabaseService:
         try:
             async with self.async_session_maker() as session:
                 result = await session.execute(
-                    select(CrawledContent).where(CrawledContent.base_url == base_url)
+                    select(ContentManager).where(ContentManager.base_url == base_url)
                 )
                 contents = result.scalars().all()
                 count = len(contents)
@@ -324,13 +332,13 @@ class VectorDatabaseService:
             async with self.async_session_maker() as session:
                 # Count total records
                 result = await session.execute(
-                    select(CrawledContent)
+                    select(ContentManager)
                 )
                 total_count = len(result.scalars().all())
                 
                 # Count unique base URLs
                 result = await session.execute(
-                    text("SELECT COUNT(DISTINCT base_url) FROM crawled_content")
+                    text("SELECT COUNT(DISTINCT base_url) FROM content_manager")
                 )
                 unique_bases = result.scalar()
                 

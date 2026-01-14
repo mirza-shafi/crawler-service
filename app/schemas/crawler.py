@@ -4,6 +4,8 @@ Request and Response Schemas - Pydantic models for API validation
 
 from pydantic import BaseModel, HttpUrl, Field
 from typing import List, Optional
+from datetime import datetime
+from enum import Enum
 
 
 class CrawlRequest(BaseModel):

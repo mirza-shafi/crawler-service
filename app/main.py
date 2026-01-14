@@ -36,11 +36,24 @@ app = FastAPI(
     
     * **Web Crawling** - Recursively crawl websites following internal links
     * **Domain Boundary** - Automatically stay within the same base domain
-    * **Content Extraction** - Extract text content, titles, and images
+    * **Content Extraction** - Extract text content, titles, images, and metadata
+    * **File Upload** - Upload PDF, DOCX, TXT, MD, HTML files for text extraction
+    * **Text Input** - Direct text content ingestion via API
+    * **Batch Processing** - Upload multiple files at once
     * **Async Processing** - Concurrent page fetching using asyncio
     * **Error Handling** - Graceful handling of timeouts and HTTP errors
     * **Batch Operations** - Crawl multiple domains in a single request
     * **Structured Output** - JSON-formatted crawl results with metadata
+    * **Semantic Search** - Vector-based similarity search using pgvector
+    * **Content Management** - Enhanced storage with 35+ fields for comprehensive content tracking
+    
+    ## Database & Storage
+    
+    * **Shared Database**: Uses `auth_app_db` on port 5435 (shared with authentication and app services)
+    * **Table**: `content_manager` - Enhanced schema following 11labs crawler architecture
+    * **Features**: Content quality scoring, deduplication, metadata tracking, vector embeddings
+    * **Fields**: URL tracking, domain extraction, word count, content hash, SEO metadata, JSONB storage
+    * **Multi-Source**: Supports URLs, files, and text with unified search
     
     ## Architecture
     
@@ -48,6 +61,7 @@ app = FastAPI(
     - **API Layer**: FastAPI endpoints with request/response validation
     - **Service Layer**: Business logic for crawling and scraping
     - **Core Layer**: Configuration and utilities
+    - **Data Layer**: PostgreSQL with pgvector for semantic search
     
     ## Performance
     
@@ -55,12 +69,37 @@ app = FastAPI(
     - Configurable concurrency limits to avoid overwhelming servers
     - Timeout handling to prevent hanging requests
     - Automatic retry logic with configurable delays
+    - Optimized database indexes for fast queries
     
     ## Usage
     
+    ### Web Crawling
     1. **Basic Crawl**: Send a POST request to `/api/v1/crawler/crawl`
     2. **Batch Crawl**: Send multiple URLs to `/api/v1/crawler/crawl/batch`
-    3. **Health Check**: GET `/api/v1/crawler/health` to verify service status
+    
+    ### Content Ingestion
+    3. **File Upload**: Upload files at `/api/v1/ingestion/upload/file`
+    4. **Text Input**: Submit text at `/api/v1/ingestion/upload/text`
+    5. **Batch Upload**: Upload multiple files at `/api/v1/ingestion/upload/batch`
+    
+    ### Search & Management
+    6. **Semantic Search**: Search all content at `/api/v1/crawler/search`
+    7. **List Content**: View ingested content at `/api/v1/ingestion/content/list`
+    8. **Statistics**: Get stats at `/api/v1/ingestion/stats`
+    9. **Vector Stats**: Get database statistics at `/api/v1/crawler/vector/stats`
+    5. **Health Check**: GET `/api/v1/crawler/health` to verify service status
+    
+    ## Content Manager Schema
+    
+    The `content_manager` table includes:
+    - **Identity**: id, url, base_url, domain
+    - **Content**: title, description, text_content, content_snippet, raw_html
+    - **Media**: images, videos, links (JSONB)
+    - **SEO**: meta_tags, keywords, author (JSONB)
+    - **Quality**: word_count, content_hash, quality_score
+    - **Tracking**: crawl_status, crawl_timestamp, is_processed, is_indexed
+    - **Vectors**: embedding (384-dim), embedding_model
+    - **Metadata**: custom_metadata (JSONB)
     """,
     version=settings.APP_VERSION,
     docs_url="/docs",
@@ -88,6 +127,11 @@ async def startup_event():
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
     logger.info(f"Max concurrent requests: {settings.MAX_CONCURRENT_REQUESTS}")
     logger.info(f"Request timeout: {settings.REQUEST_TIMEOUT}s")
+    
+    # Create uploads directory
+    import os
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    logger.info(f"Uploads directory: {settings.UPLOAD_DIR}")
     
     # Initialize database tables
     try:

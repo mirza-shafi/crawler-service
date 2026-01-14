@@ -3,13 +3,18 @@ Crawler Endpoints - FastAPI routes for crawling operations
 """
 
 import logging
+import asyncio
 from typing import Annotated, Optional
-from fastapi import APIRouter, HTTPException, status, Form, Depends
+from fastapi import APIRouter, HTTPException, status, Form, Depends, BackgroundTasks
 
-from ....schemas.crawler import CrawlRequest, CrawlResponse, CrawlErrorResponse, SearchResponse
+from ....schemas.crawler import (
+    CrawlRequest, CrawlResponse, CrawlErrorResponse, 
+    SearchResponse, TaskResponse, ContentResponse, TaskStatus
+)
 from ....services.crawler import crawler_service
 from ....services.vector_db_service import vector_db_service
 from ....services.database_service import database_service
+from ....services.task_manager import task_manager
 from ....core.database import get_db
 
 logger = logging.getLogger(__name__)

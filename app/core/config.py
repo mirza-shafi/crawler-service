@@ -48,6 +48,17 @@ class Settings(BaseSettings):
 
     # Logging settings
     LOG_LEVEL: str = "INFO"
+    
+    # File upload settings
+    MAX_FILE_SIZE_MB: int = 50  # Maximum file size in MB
+    ALLOWED_FILE_TYPES: list = [
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "text/plain",
+        "text/markdown",
+        "text/html"
+    ]
+    UPLOAD_DIR: str = "uploads"  # Directory for temporary file storage
 
     class Config:
         env_file = ".env"
